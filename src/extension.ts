@@ -140,7 +140,7 @@ class CatCodingPanel {
 		const panel = vscode.window.createWebviewPanel(
 			CatCodingPanel.viewType,
 			'Cat Coding',
-			column || vscode.ViewColumn.One,
+			vscode.ViewColumn.Two, //column || vscode.ViewColumn.One,
 			getWebviewOptions(extensionUri),
 		);
 

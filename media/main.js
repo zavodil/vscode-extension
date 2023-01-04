@@ -76,7 +76,7 @@
         });
     });
 
-    const deleteKeyButton = /** @type {HTMLElement} */ (document.getElementById('delete-key-bu±tton'));
+    const deleteKeyButton = /** @type {HTMLElement} */ (document.getElementById('delete-key-button'));
     deleteKeyButton.addEventListener('click', async e => {
         vscode.postMessage({
             command: 'delete-key'
