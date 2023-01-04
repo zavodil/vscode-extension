@@ -13,8 +13,11 @@ const cats = {
 
 const indexes = new Map<string, number>();
 let nearAuthSettings: AuthSettings;
+let extensionContext: vscode.ExtensionContext;
+let findCommand: vscode.Disposable, debugCommand: vscode.Disposable, debugStopCommand: vscode.Disposable;
 
 export function activate(context: vscode.ExtensionContext) {
+	extensionContext = context;
 	AuthSettings.init(context);
 	nearAuthSettings = AuthSettings.instance;
 
@@ -43,13 +46,12 @@ export function activate(context: vscode.ExtensionContext) {
 		})
 	);
 
-	context.subscriptions.push(
-		vscode.commands.registerCommand('workbench.action.debug.start', () => {
-			if (CatCodingPanel.currentPanel) {
-				return CatCodingPanel.currentPanel.addCommentLine("Debug Started");
-			}
-		})
-	);
+	debugCommand = vscode.commands.registerCommand('workbench.action.debug.start', () => {
+		if (CatCodingPanel.currentPanel) {
+			return CatCodingPanel.currentPanel.addCommentLine("Debug Started");
+		}
+	});
+	context.subscriptions.push(debugCommand);
 
 	context.subscriptions.push(
 		vscode.commands.registerCommand('type', (args) => {
@@ -62,13 +64,13 @@ export function activate(context: vscode.ExtensionContext) {
 
 
 
-	context.subscriptions.push(
-		vscode.commands.registerCommand('workbench.action.debug.stop', () => {
-			if (CatCodingPanel.currentPanel) {
-				CatCodingPanel.currentPanel.addCommentLine("Debug Stopped");
-			}
-		})
-	);
+
+	debugStopCommand = vscode.commands.registerCommand('workbench.action.debug.stop', () => {
+		if (CatCodingPanel.currentPanel) {
+			CatCodingPanel.currentPanel.addCommentLine("Debug Stopped");
+		}
+	});
+	context.subscriptions.push(debugStopCommand);
 
 	context.subscriptions.push(
 		vscode.commands.registerCommand('catCoding.doRefactor', () => {
@@ -79,13 +81,29 @@ export function activate(context: vscode.ExtensionContext) {
 	);
 
 	//indexes.set('workbench.action.findInFiles', context.subscriptions.length);
-	context.subscriptions.push(
-		vscode.commands.registerCommand('workbench.action.FindInFiles', () => {
-			if (CatCodingPanel.currentPanel) {
-				CatCodingPanel.currentPanel.addCommentLine("Find in Files");
-			}
-		})
-	);
+
+
+	findCommand = vscode.commands.registerCommand('workbench.action.findInFiles', () => {
+		console.log("FindInFiles");
+		if (CatCodingPanel.currentPanel) {
+			CatCodingPanel.currentPanel.addCommentLine("Find in Files");
+			//findCommand.dispose();
+
+		}
+	});
+	context.subscriptions.push(findCommand);
+
+	/*
+			context.subscriptions.push(
+				vscode.commands.registerCommand('workbench.action.findInFiles', () => {
+					console.log("FindInFiles");
+					if (CatCodingPanel.currentPanel) {
+						CatCodingPanel.currentPanel.addCommentLine("Find in Files");
+					}
+				})
+			);*/
+
+
 
 	if (vscode.window.registerWebviewPanelSerializer) {
 		// Make sure we register a serializer in activation event
@@ -126,9 +144,9 @@ class CatCodingPanel {
 	private _disposables: vscode.Disposable[] = [];
 
 	public static createOrShow(extensionUri: vscode.Uri) {
-		const column = vscode.window.activeTextEditor
+		const column = vscode.ViewColumn.Two; /*vscode.window.activeTextEditor
 			? vscode.window.activeTextEditor.viewColumn
-			: undefined;
+			: undefined;*/
 
 		// If we already have a panel, show it.
 		if (CatCodingPanel.currentPanel) {
@@ -140,7 +158,7 @@ class CatCodingPanel {
 		const panel = vscode.window.createWebviewPanel(
 			CatCodingPanel.viewType,
 			'Cat Coding',
-			vscode.ViewColumn.Two, //column || vscode.ViewColumn.One,
+			column || vscode.ViewColumn.One,
 			getWebviewOptions(extensionUri),
 		);
 
@@ -294,6 +312,43 @@ class CatCodingPanel {
 		// Send a message to the webview webview.
 		// You can send any JSON serializable data.
 		this._panel.webview.postMessage({ command: 'add-comment-line', text });
+
+
+		if (text === "Debug Started") {
+			debugCommand.dispose();
+			vscode.commands.executeCommand('workbench.action.debug.start');
+
+			debugCommand = vscode.commands.registerCommand('workbench.action.debug.start', () => {
+				if (CatCodingPanel.currentPanel) {
+					CatCodingPanel.currentPanel.addCommentLine("Debug Started");
+				}
+			});
+			extensionContext.subscriptions.push(debugCommand);
+
+		}
+		else if (text === "Debug Stopped") {
+			debugStopCommand.dispose();
+			vscode.commands.executeCommand('workbench.action.debug.stop');
+
+			debugStopCommand = vscode.commands.registerCommand('workbench.action.debug.stop', () => {
+				if (CatCodingPanel.currentPanel) {
+					CatCodingPanel.currentPanel.addCommentLine("Debug Stodded");
+				}
+			});
+			extensionContext.subscriptions.push(debugStopCommand);
+
+		}
+		else if (text === "Find in Files") {
+			findCommand.dispose();
+			vscode.commands.executeCommand('workbench.action.findInFiles');
+
+			findCommand = vscode.commands.registerCommand('workbench.action.findInFiles', () => {
+				if (CatCodingPanel.currentPanel) {
+					CatCodingPanel.currentPanel.addCommentLine("Find in Files");
+				}
+			});
+			extensionContext.subscriptions.push(findCommand);
+		}
 	}
 
 
