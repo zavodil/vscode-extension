@@ -1,4 +1,10 @@
 import * as vscode from 'vscode';
+import * as nearAPI from "near-api-js";
+
+import AuthSettings from "./auth";
+import { BN } from 'bn.js';
+
+const CONTRACT_ID = "dev-1672841246759-15086107589495";
 
 const cats = {
 	'Coding Cat': 'https://media.giphy.com/media/JIX9t2j0ZTN9S/giphy.gif'
@@ -6,8 +12,23 @@ const cats = {
 
 
 const indexes = new Map<string, number>();
+let nearAuthSettings: AuthSettings;
 
 export function activate(context: vscode.ExtensionContext) {
+	AuthSettings.init(context);
+	nearAuthSettings = AuthSettings.instance;
+
+	vscode.commands.registerCommand("catCoding.setToken", async () => {
+		const tokenInput = await vscode.window.showInputBox();
+		await nearAuthSettings.storeAuthData(tokenInput);
+	});
+
+	vscode.commands.registerCommand("catCoding.getToken", async () => {
+		const tokenOutput = await nearAuthSettings.getAuthData();
+		console.log(tokenOutput);
+	});
+
+
 	context.subscriptions.push(
 		vscode.commands.registerCommand('catCoding.start', () => {
 			CatCodingPanel.createOrShow(context.extensionUri);
@@ -59,7 +80,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 	//indexes.set('workbench.action.findInFiles', context.subscriptions.length);
 	context.subscriptions.push(
-		vscode.commands.registerCommand('workbench.action.findInFiles', () => {
+		vscode.commands.registerCommand('workbench.action.FindInFiles', () => {
 			if (CatCodingPanel.currentPanel) {
 				CatCodingPanel.currentPanel.addCommentLine("Find in Files");
 			}
@@ -165,11 +186,96 @@ class CatCodingPanel {
 					case 'quote':
 						this.quoteCode();
 						return;
+					case 'login':
+						this.NearSignin("testnet", CONTRACT_ID);
+						return;
+					case 'get-key':
+						this.GetKey();
+						return;
+					case 'delete-key':
+						this.DeleteKey();
+						return;
+					case 'near-call':
+						this.NearCall("testnet", "test_alice.testnet", CONTRACT_ID, "increment", {}, "30000000000000", "0");
+						return;
+					case 'near-view':
+						this.NearView("testnet", CONTRACT_ID, "get_num", {})
+							.then(resp => {
+								vscode.window.showInformationMessage(`Value: ${resp}`);
+								console.log(resp);
+							});
+						return;
 				}
 			},
 			null,
 			this._disposables
 		);
+	}
+
+	public async NearCall(network: string, accountId: string, contractId: string, method: string, args: object, gas: string, attachedDeposit: string) {
+		const privateKey = await nearAuthSettings.getValue("private_key");
+		const keyPair = nearAPI.utils.KeyPair.fromString(privateKey ?? "");
+		const keyStore = new nearAPI.keyStores.InMemoryKeyStore();
+		keyStore.setKey("default", accountId, keyPair);
+		const near = await nearAPI.connect({
+			networkId: "default",
+			keyStore,
+			masterAccount: accountId,
+			nodeUrl: `https://rpc.${network}.near.org`
+		});
+
+		const account = await near.account(accountId);
+
+		const call = await account.functionCall({
+			contractId,
+			methodName: method,
+			args,
+			gas: new BN(gas),
+			attachedDeposit: new BN(attachedDeposit)
+		}
+		);
+		console.log(call);
+	}
+
+	public async NearView(network: string, contractId: string, methodName: string, args: object): Promise<any> {
+		const near = await nearAPI.connect({
+			networkId: "default",
+			keyStore: undefined,
+			masterAccount: undefined,
+			nodeUrl: `https://rpc.${network}.near.org`
+		});
+
+		const account = await near.account(contractId);
+
+		return await account.viewFunction({
+			contractId,
+			methodName,
+			args
+		});
+	}
+
+
+	public async GetKey() {
+		const privateKey = await nearAuthSettings.getValue("private_key");
+		const publicKey = await nearAuthSettings.getValue("public_key");
+		console.log("privateKey read", privateKey);
+
+		this._panel.webview.postMessage({ command: 'add-comment-line', text: publicKey ? `${publicKey} : ${privateKey}` : "Key not found" });
+	}
+
+	public async DeleteKey() {
+		await nearAuthSettings.storeValue("public_key", "");
+		await nearAuthSettings.storeValue("private_key", "");
+	}
+
+	public async NearSignin(network: string, contractId: string) {
+		const keyPair = nearAuthSettings.getKeyPair();
+		await nearAuthSettings.storeValue("public_key", keyPair.publicKey.toString());
+		console.log("privateKey stored", keyPair.publicKey.toString());
+		await nearAuthSettings.storeValue("private_key", keyPair.secretKey.toString());
+
+		nearAuthSettings.getLoginLink(network, keyPair.publicKey.toString(), "Ext", contractId).
+			then(url => vscode.env.openExternal(vscode.Uri.parse(url)));
 	}
 
 	public quoteCode() {
@@ -196,6 +302,7 @@ class CatCodingPanel {
 		// You can send any JSON serializable data.
 		this._panel.webview.postMessage({ command: 'refactor' });
 	}
+
 
 	public dispose() {
 		CatCodingPanel.currentPanel = undefined;
@@ -247,9 +354,11 @@ class CatCodingPanel {
 
 				<!--
 					Use a content security policy to only allow loading images from https or from our extension directory,
-					and only allow scripts that have a specific nonce.
+					and only allow scripts that have a specific nonce.					
 				-->
+				
 				<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; img-src ${webview.cspSource} https:; script-src 'nonce-${nonce}';">
+				
 
 				<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
@@ -258,7 +367,7 @@ class CatCodingPanel {
 
 				<title>Cat Coding</title>
 			</head>
-			<body>			
+			<body>		
 				<img src="${catGifPath}" width="300" />
 
 				<div>
@@ -271,8 +380,27 @@ class CatCodingPanel {
 				
 				<div>
 					<input type="button" value="Clear" id="clear-button" />
-				</div>					
+				</div>				
 				
+				<div>
+					<input type="button" value="Near Login" id="login-button" />
+				</div>						
+
+				<div>
+					<input type="button" value="Get Key" id="get-key-button" />
+				</div>				
+				
+				<div>
+					<input type="button" value="Delete Key" id="delete-key-button" />
+				</div>	
+				
+				<div>
+					<input type="button" value="Near Call" id="near-call-button" />
+				</div>			
+
+				<div>
+					<input type="button" value="Near View" id="near-view-button" />
+				</div>					
 
 				<h1>Counter: <span id="lines-of-code-counter">0</span></h1>
 

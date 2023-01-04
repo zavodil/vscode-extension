@@ -30,6 +30,16 @@
 				"command": "catCoding.doRefactor",
 				"title": "Do some refactoring",
 				"category": "catCoding"
+			},
+			{
+				"command": "catCoding.getToken",
+				"title": "Get Token",
+				"category": "catCoding"
+			},
+			{
+				"command": "catCoding.setToken",
+				"title": "Set Token",
+				"category": "catCoding"
 			}
 		]
 	},
@@ -40,6 +50,7 @@
 		"watch": "tsc -w -p ./"
 	},
 	"devDependencies": {
+		"@types/bn.js": "^5.1.1",
 		"@types/node": "^16.11.7",
 		"@types/vscode": "^1.73.0",
 		"@types/vscode-webview": "^1.57.0",
@@ -47,5 +58,9 @@
 		"@typescript-eslint/parser": "^5.42.0",
 		"eslint": "^8.26.0",
 		"typescript": "^4.8.4"
+	},
+	"dependencies": {
+		"bn.js": "^5.2.1",
+		"near-api-js": "^1.1.0"
 	}
 }

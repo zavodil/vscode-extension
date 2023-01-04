@@ -23,14 +23,14 @@
         // Update state
         vscode.setState({ count: currentCount, code: oldState?.code, comment: oldState?.comment });
 
-        // Alert the extension when the cat introduces a bug
+        /*
         if (Math.random() < Math.min(0.001 * currentCount, 0.05)) {
             // Send a message back to the extension
             vscode.postMessage({
                 command: 'alert',
                 text: 'Random alert from the extension'
             });
-        }
+        }*/
     }, 800);
 
 
@@ -61,6 +61,83 @@
         codeBox.textContent = "";
         messageBox.textContent = "";
     });
+
+    const loginButton = /** @type {HTMLElement} */ (document.getElementById('login-button'));
+    loginButton.addEventListener('click', async e => {
+        vscode.postMessage({
+            command: 'login'
+        });
+    });
+
+    const getKeyButton = /** @type {HTMLElement} */ (document.getElementById('get-key-button'));
+    getKeyButton.addEventListener('click', async e => {
+        vscode.postMessage({
+            command: 'get-key'
+        });
+    });
+
+    const deleteKeyButton = /** @type {HTMLElement} */ (document.getElementById('delete-key-bu±tton'));
+    deleteKeyButton.addEventListener('click', async e => {
+        vscode.postMessage({
+            command: 'delete-key'
+        });
+    });
+
+
+
+    const nearCallButton = /** @type {HTMLElement} */ (document.getElementById('near-call-button'));
+    nearCallButton.addEventListener('click', async e => {
+        vscode.postMessage({
+            command: 'near-call'
+        });
+    });
+
+
+    const nearViewButton = /** @type {HTMLElement} */ (document.getElementById('near-view-button'));
+    nearViewButton.addEventListener('click', async e => {
+        vscode.postMessage({
+            command: 'near-view'
+        });
+    });
+
+    /*
+    console.log("nearLogin");
+    const { keyStores, KeyPair } = nearAPI;
+    const myKeyStore = new keyStores.InMemoryKeyStore();
+    console.log(myKeyStore);
+    const PRIVATE_KEY =
+    "Jq1hR95q9WFem7SNMFYosorTh76uyq4iBhJ37JGxb2p4HtXLwPpH7aQQ6HNJUN3hhEkyJfwFztCvq9jzVYwKrQF";
+    // creates a public / private key pair using the provided private key
+    const keyPair = KeyPair.fromString(PRIVATE_KEY);
+    console.log(keyPair);
+    // adds the keyPair you created to keyStore
+    await myKeyStore.setKey("testnet", "example-account.testnet", keyPair);
+
+    const connectionConfig = {
+        networkId: "testnet",
+        keyStore: myKeyStore, // first create a key store 
+        nodeUrl: "https://rpc.testnet.near.org",
+        walletUrl: "https://wallet.testnet.near.org",
+        helperUrl: "https://helper.testnet.near.org",
+        explorerUrl: "https://explorer.testnet.near.org",		  
+    };
+    const nearConnection = await nearAPI.connect(connectionConfig);
+
+    console.log("nearConnection", nearConnection);
+
+    // create wallet connection
+    const walletConnection = new nearAPI.WalletConnection(nearConnection, "vscode_");
+
+    console.log("walletConnection", walletConnection);
+
+    return walletConnection.requestSignIn( {
+        contractId: "example-contract.testnet", // contract requesting access
+        methodNames: [], 
+        successUrl: "http://YOUR-URL.com/success", // optional redirect URL on success
+        failureUrl: "http://YOUR-URL.com/failure" // optional redirect URL on failure
+    });
+    */
+    //});    
 
 
     // Handle messages sent from the extension to the webview
